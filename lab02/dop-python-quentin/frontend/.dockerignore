@@ -1,0 +1,8 @@
+# Ignore all files
+*
+
+# Whitelist only necessary files/directories
+!package*.json
+!index.html
+!src/
+!vite.config.js

@@ -1,0 +1,45 @@
+# The builder image, used to build the virtual environment
+FROM python:3.13-alpine as builder
+
+# Pin the poetry version so that no breaking changes can happen, only minor ones such as security updates
+RUN pip install poetry==2.1
+
+# Setting up variables so that we make sure that 
+# the behavior is idempotent
+# Python
+ENV PYTHONFAULTHANDLER=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONHASHSEED=random \
+    PIP_NO_CACHE_DIR=off \
+    PIP_DISABLE_PIP_VERSION_CHECK=on \
+    PIP_DEFAULT_TIMEOUT=100
+
+# Poetry
+ENV POETRY_NO_INTERACTION=1 \
+    POETRY_VIRTUALENVS_CREATE=false \
+    POETRY_CACHE_DIR='/var/cache/pypoetry' \
+    POETRY_HOME='/usr/local' 
+
+WORKDIR /app
+
+COPY pyproject.toml poetry.lock ./
+RUN touch README.md
+
+RUN poetry install --no-root 
+
+# The runtime image, used to just run the code provided its virtual environment
+# We use the apline version so that only the dependencies to run python are available
+FROM python:3.13-alpine as runtime
+
+WORKDIR /app
+
+# Copy the dependencies created in the building stage
+# Building the .venv and copying it result in a smaller image
+COPY --from=builder /usr/local/lib/python3.13/site-packages/ /usr/local/lib/python3.13/site-packages/
+# COPY --from=builder /usr/local/bin/ /usr/local/bin/
+
+COPY backend ./backend
+
+EXPOSE 80
+
+CMD python -m uvicorn backend.main:app --host 0.0.0.0 --port 80
