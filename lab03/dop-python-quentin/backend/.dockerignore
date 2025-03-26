@@ -1,0 +1,7 @@
+# Ignore all files
+*
+
+# Whitelist only necessary files/directories
+!backend/
+!poetry.lock
+!pyproject.toml
