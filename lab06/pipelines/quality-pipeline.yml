@@ -1,0 +1,35 @@
+# Quality Pipeline (quality-pipeline.yml)
+stages:
+  - static-analysis
+
+variables:
+  MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
+
+# Maven cache reloaded on pom.xml
+.maven-cache: &maven-cache
+  image: maven:3-eclipse-temurin-17
+  cache:
+    key:
+      files:
+        - pom.xml
+    paths:
+      - $CI_PROJECT_DIR/.m2/repository
+    policy: pull-push
+
+
+# Code quality configuration
+code_quality:
+  stage: static-analysis
+  <<: *maven-cache
+  script:
+    - mvn spotbugs:check pmd:check checkstyle:check
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "parent_pipeline"
+    - if: $CI_MERGE_REQUEST_ID
+  allow_failure: true
+  artifacts:
+    paths:
+      - $CI_PROJECT_DIR/target/site/spotbugs.html
+      - $CI_PROJECT_DIR/target/site/pmd.html
+      - $CI_PROJECT_DIR/target/checkstyle-result.xml
+    expire_in: 1 week

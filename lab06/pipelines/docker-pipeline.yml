@@ -1,0 +1,57 @@
+# Docker Pipeline (docker-pipeline.yml)
+stages:
+  - build
+  - deploy
+
+include:
+  - template: Security/Container-Scanning.gitlab-ci.yml
+
+# Docker configuration template
+.docker-config: &docker-config
+  image: docker:20.10
+  services:
+    - docker:20.10-dind
+  variables:
+    IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+    IMAGE_LATEST: $CI_REGISTRY_IMAGE:latest
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY --username $CI_REGISTRY_USER --password-stdin
+
+# Build docker
+build-spring-docker:
+  stage: build
+  <<: *docker-config
+  script:
+    - docker pull $IMAGE_LATEST || true
+    - docker build --cache-from $IMAGE_LATEST -t $IMAGE_TAG -t $IMAGE_LATEST .
+    - docker save $IMAGE_TAG -o built-image.tar
+  artifacts:
+    paths:
+      - built-image.tar
+    expire_in: 1 day
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "parent_pipeline"
+    - if: $CI_MERGE_REQUEST_ID
+
+
+# Deploy docker
+publish-spring-docker:
+  stage: deploy
+  <<: *docker-config
+  needs: [build-spring-docker]
+  script:
+    - docker load -i built-image.tar
+    - docker tag $IMAGE_TAG $CI_REGISTRY_IMAGE:latest
+    - docker push $IMAGE_TAG
+    - docker push $IMAGE_LATEST
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+# Container scanning configuration
+container_scanning:
+  stage: deploy
+  needs: [publish-spring-docker]
+  variables:
+    CS_IMAGE: "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}"
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH

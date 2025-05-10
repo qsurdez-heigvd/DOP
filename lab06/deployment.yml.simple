@@ -1,0 +1,57 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-dop-lab06
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /?(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: service-dop-lab06
+                port:
+                  number: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-dop-lab06
+spec:
+  selector:
+    matchLabels:
+      app: app-dop-lab06
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: app-dop-lab06
+    spec:
+      containers:
+        - name: app-dop-lab06
+          image: registry.gitlab.com/sinaf19/heig-vd-devops-java:ed1437555e7b22734081d1c39ed9371f6e44619f
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              name: web-dop-lab06
+          resources:
+            limits:
+              cpu:	500m
+              memory:	512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-dop-lab06
+spec:
+  ports:
+    - port: 8080
+      targetPort: web-dop-lab06
+  selector:
+    app: app-dop-lab06
+

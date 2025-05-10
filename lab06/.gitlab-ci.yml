@@ -1,0 +1,24 @@
+# Parent Pipeline (gitlab-ci.yml)
+# test the pipeline without MR
+stages:
+  - trigger
+
+variables:
+  MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
+
+# Child pipeline triggers
+trigger-app-pipeline:
+  stage: trigger
+  trigger:
+    include: pipelines/app-pipeline.yml
+    strategy: depend
+  rules:
+    - changes:
+        - src/**/*
+        - pom.xml
+        - .gitlab-ci.yml
+        - app-pipeline.yml
+        - Dockerfile
+        - compose.yml
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+

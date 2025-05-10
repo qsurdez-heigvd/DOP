@@ -1,0 +1,6 @@
+# Ignore all files
+*
+
+# Whitelist only necessary files
+!pom.xml
+!src/main

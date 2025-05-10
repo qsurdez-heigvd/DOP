@@ -1,0 +1,20 @@
+FROM gradle:jdk17-alpine AS builder
+
+WORKDIR /application
+
+# First the build info that is less likely to change
+COPY build.gradle /application
+COPY settings.gradle /application
+
+# Then the application code itself
+COPY src/main /application/src/main
+
+RUN gradle clean bootJar
+
+FROM sapmachine:24-jre-alpine-3.21 AS runtime
+
+COPY --from=builder /application/build/libs/testing-web-0.0.1-SNAPSHOT.jar /application/
+
+EXPOSE 8080
+
+CMD ["java", "-jar", "/application/testing-web-0.0.1-SNAPSHOT.jar"]

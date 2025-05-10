@@ -1,0 +1,14 @@
+services:
+  spring-web:
+    build:
+      context: ./
+    container_name: spring
+    ports:
+      - "8080:8080"
+    image:
+      'registry.gitlab.com/sinaf19/heig-vd-devops-java'
+    
+
+networks:
+  default:
+    name: spring-net
